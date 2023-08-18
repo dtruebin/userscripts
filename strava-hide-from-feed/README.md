@@ -1,6 +1,6 @@
 # Strava - Hide from Feed (Mute)
 
-![Greasy Fork](https://img.shields.io/greasyfork/dt/473372?label=Strava%20-%20Hide%20from%20Feed%20(Mute))
+[![Greasy Fork](https://img.shields.io/greasyfork/dt/473372?label=Strava%20-%20Hide%20from%20Feed%20(Mute))][GreasyFork]
 
 ## Installation
 
