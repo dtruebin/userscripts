@@ -1,6 +1,7 @@
 // ==UserScript==
 // @name         Strava - Hide from Feed (Mute)
-// @namespace    http://github.com/dtruebin/userscripts/
+// @namespace    https://github.com/dtruebin/userscripts/
+// @supportURL   https://github.com/dtruebin/userscripts/issues
 // @version      0.1
 // @description  Adds mute option to activity edit page.
 // @author       Dmitry Trubin
