@@ -13,8 +13,7 @@
 (function () {
   'use strict';
 
-  // As of 2023-08-18, when activity[hide_from_home] is present in the submitted form data, activity gets muted
-  // regardless of the value. I.e., muting only works one way, and it's impossible to unmute by passing 0/false.
+  // As of 2023-08-18, muting only works one way: https://github.com/dtruebin/userscripts/issues/1
   const div = `
   <div class="form-group">
     <label>Hide from Home or Club Feeds</label>
