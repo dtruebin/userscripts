@@ -6,4 +6,4 @@ There is a feature gap between Strava's web and mobile apps. In particular, the 
 
 In the meantime, this user script tries to fill that gap by adding mute option to activity edit page:
 
-![](strava-hide-from-feed.png)
+![](https://raw.githubusercontent.com/dtruebin/userscripts/main/strava-hide-from-feed/strava-hide-from-feed.png)
