@@ -2,7 +2,7 @@
 // @name         Strava - Hide Unwanted Feed Items
 // @namespace    https://github.com/dtruebin/userscripts/
 // @supportURL   https://github.com/dtruebin/userscripts/issues
-// @version      3.0.1
+// @version      3.0.2
 // @description  Hides uninspiring activities and challenge progress from Strava feed based on device, tags, and activity name.
 // @author       Dmitry Trubin
 // @match        https://www.strava.com/dashboard*
@@ -52,20 +52,12 @@
 
   // === Main function ===
   function hideUnwantedEntries(root = document) {
-    root
-      .querySelectorAll(
-        `div[role="button"]:not([data-processed]):has(${SELECTORS.feedEntry})`,
-      )
+    root.querySelectorAll(`div[role="button"]:not([data-processed]):has(${SELECTORS.feedEntry})`)
       .forEach((div) => {
         const challenge = div.querySelector('[data-testid="group-header"]');
         if (challenge) {
-          const challengeName = div.querySelector(
-            '[data-testid="title-text"]',
-          )?.textContent;
-          hideElement(
-            div,
-            `hiding challenge progress: ${challenge.textContent} - ${challengeName}`,
-          );
+          const challengeName = div.querySelector('[data-testid="title-text"]')?.textContent;
+          hideElement(div, `hiding challenge progress: ${challenge.textContent} - ${challengeName}`);
           return;
         }
 
@@ -77,40 +69,27 @@
 
         const activityName = activity?.textContent.trim();
 
-        const fromFavoriteAthlete = div.querySelector(
-          '[data-testid="boosted"]',
-        );
+        const fromFavoriteAthlete = div.querySelector('[data-testid="boosted"]');
         if (fromFavoriteAthlete) {
           if (!document.URL.includes("/athletes/")) {
-            const athleteName = div.querySelector(
-              '[data-testid="owners-name"]',
-            )?.textContent;
-            console.log(
-              `skipping further processing of ${athleteName}'s ⭐ activity: ${activityName}`,
-            );
+            const athleteName = div.querySelector('[data-testid="owners-name"]')?.textContent;
+            console.log(`skipping further processing of ${athleteName}'s ⭐ activity: ${activityName}`);
           }
           markAsProcessed(div);
           return;
         }
 
         const tags = div.querySelectorAll(SELECTORS.tag);
-        for (const tag of [...tags].map((tagElement) =>
-          tagElement?.textContent.trim(),
-        )) {
+        for (const tag of [...tags].map((tagElement) => tagElement?.textContent.trim())) {
           if (CONFIG.unwantedTags.has(tag)) {
             const hasPhoto = div.querySelector('[data-testid="photo"]');
             if ((tag === "Commute" || tag === "Регулярный маршрут") && hasPhoto) {
-              console.log(
-                `not hiding commute activity with photo(s): ${activityName}`,
-              );
+              console.log(`not hiding commute activity with photo(s): ${activityName}`);
               markAsProcessed(div);
               return;
             }
 
-            hideElement(
-              div,
-              `hiding activity by tag "${tag}": ${activityName}`,
-            );
+            hideElement(div, `hiding activity by tag "${tag}": ${activityName}`);
             return;
           }
         }
@@ -119,19 +98,12 @@
         if (device) {
           const deviceName = device?.textContent.trim();
           if (CONFIG.unwantedDevices.has(deviceName)) {
-            hideElement(
-              div,
-              `hiding activity by device "${deviceName}": ${activityName}`,
-            );
+            hideElement(div, `hiding activity by device "${deviceName}": ${activityName}`);
             return;
           }
         }
 
-        if (
-          CONFIG.unwantedNames.some((name) =>
-            activityName.toLowerCase().includes(name),
-          )
-        ) {
+        if (CONFIG.unwantedNames.some((name) => activityName.toLowerCase().includes(name))) {
           hideElement(div, `hiding activity by name: ${activityName}`);
           return;
         }
