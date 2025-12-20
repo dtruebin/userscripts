@@ -2,7 +2,7 @@
 // @name         Strava - Hide Unwanted Feed Items
 // @namespace    https://github.com/dtruebin/userscripts/
 // @supportURL   https://github.com/dtruebin/userscripts/issues
-// @version      2.0.0
+// @version      2.0.1
 // @description  Hides uninspiring activities and challenge progress from Strava feed based on device, tags, and activity name.
 // @author       Dmitry Trubin
 // @match        https://www.strava.com/dashboard*
@@ -16,18 +16,20 @@
   "use strict";
 
   // === Config ===
-  const unwantedTags = new Set([
-    "Commute", "Регулярный маршрут",
-    "Virtual", "Виртуальный",
-  ]);
-  const unwantedDevices = new Set([
-    "Rouvy",
-    "Tacx App",
-    "Zwift",
-  ]);
-  const unwantedNames = [
-    "weight training",
-  ].map((s) => s.toLowerCase());
+  const CONFIG = {
+    unwantedTags: new Set([
+      "Commute", "Регулярный маршрут",
+      "Virtual", "Виртуальный",
+    ]),
+    unwantedDevices: new Set([
+      "Rouvy",
+      "Tacx App",
+      "Zwift",
+    ]),
+    unwantedNames: [
+      "weight training",
+    ].map((s) => s.toLowerCase())
+  };
 
   // === Helper to hide an element and log reason ===
   function hideElement(element, logMessage) {
@@ -86,7 +88,7 @@
         for (const tag of [...tags].map((tagElement) =>
           tagElement?.textContent.trim(),
         )) {
-          if (unwantedTags.has(tag)) {
+          if (CONFIG.unwantedTags.has(tag)) {
             hideElement(
               div,
               `hiding activity by tag "${tag}": ${activityName}`,
@@ -98,7 +100,7 @@
         const device = div.querySelector(SELECTORS.device);
         if (device) {
           const deviceName = device?.textContent.trim();
-          if (unwantedDevices.has(deviceName)) {
+          if (CONFIG.unwantedDevices.has(deviceName)) {
             hideElement(
               div,
               `hiding activity by device "${deviceName}": ${activityName}`,
@@ -108,7 +110,7 @@
         }
 
         if (
-          unwantedNames.some((name) =>
+          CONFIG.unwantedNames.some((name) =>
             activityName.toLowerCase().includes(name),
           )
         ) {
