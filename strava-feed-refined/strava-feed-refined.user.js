@@ -2,7 +2,7 @@
 // @name         Strava - Hide Unwanted Feed Items
 // @namespace    https://github.com/dtruebin/userscripts/
 // @supportURL   https://github.com/dtruebin/userscripts/issues
-// @version      1.0.0
+// @version      1.0.1
 // @description  Hides uninspiring activities and challenge progress from Strava feed based on device, tags, and activity name.
 // @author       Dmitry Trubin
 // @match        https://www.strava.com/dashboard*
@@ -32,11 +32,18 @@
     element.dataset.hidden = "true"; // prevent reprocessing
   }
 
+  const SELECTORS = {
+    feedEntry: '[data-testid="web-feed-entry"]',
+    activityName: '[data-testid="activity_name"]',
+    device: '[data-testid="device"]',
+    tag: '[data-testid="tag"]',
+  };
+
   // === Main function ===
   function hideUnwantedEntries(root = document) {
     root
       .querySelectorAll(
-        'div[role="button"]:not([data-hidden]):has([data-testid="web-feed-entry"])',
+        `div[role="button"]:not([data-hidden]):has(${SELECTORS.feedEntry})`,
       )
       .forEach((div) => {
         const challenge = div.querySelector('[data-testid="group-header"]');
@@ -51,7 +58,7 @@
           return;
         }
 
-        const activity = div.querySelector('[data-testid="activity_name"]');
+        const activity = div.querySelector(SELECTORS.activityName);
         if (!activity) return;
 
         const activityName = activity?.textContent.trim();
@@ -71,7 +78,7 @@
           return;
         }
 
-        const device = div.querySelector('[data-testid="device"]');
+        const device = div.querySelector(SELECTORS.device);
         if (device) {
           const deviceName = device?.textContent.trim();
           if (unwantedDevices.has(deviceName)) {
@@ -83,7 +90,7 @@
           }
         }
 
-        const tags = div.querySelectorAll('[data-testid="tag"]');
+        const tags = div.querySelectorAll(SELECTORS.tag);
         for (const tag of [...tags].map((tagElement) =>
           tagElement?.textContent.trim(),
         )) {
