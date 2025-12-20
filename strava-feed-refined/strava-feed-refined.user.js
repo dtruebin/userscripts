@@ -2,7 +2,7 @@
 // @name         Strava - Hide Unwanted Feed Items
 // @namespace    https://github.com/dtruebin/userscripts/
 // @supportURL   https://github.com/dtruebin/userscripts/issues
-// @version      2.0.1
+// @version      3.0.0
 // @description  Hides uninspiring activities and challenge progress from Strava feed based on device, tags, and activity name.
 // @author       Dmitry Trubin
 // @match        https://www.strava.com/dashboard*
@@ -89,6 +89,14 @@
           tagElement?.textContent.trim(),
         )) {
           if (CONFIG.unwantedTags.has(tag)) {
+            const hasPhoto = div.querySelector('[data-testid="photo"]');
+            if ((tag === "Commute" || tag === "Регулярный маршрут") && hasPhoto) {
+              console.log(
+                `not hiding commute activity with photo(s): ${activityName}`,
+              );
+              return;
+            }
+
             hideElement(
               div,
               `hiding activity by tag "${tag}": ${activityName}`,
