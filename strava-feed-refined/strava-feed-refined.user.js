@@ -2,7 +2,7 @@
 // @name         Strava - Hide Unwanted Feed Items
 // @namespace    https://github.com/dtruebin/userscripts/
 // @supportURL   https://github.com/dtruebin/userscripts/issues
-// @version      3.0.0
+// @version      3.0.1
 // @description  Hides uninspiring activities and challenge progress from Strava feed based on device, tags, and activity name.
 // @author       Dmitry Trubin
 // @match        https://www.strava.com/dashboard*
@@ -35,7 +35,12 @@
   function hideElement(element, logMessage) {
     console.log(logMessage);
     element.style.display = "none";
-    element.dataset.hidden = "true"; // prevent reprocessing
+    markAsProcessed(element);
+  }
+
+  // === Helper to mark an element as processed ===
+  function markAsProcessed(element) {
+    element.dataset.processed = "true";
   }
 
   const SELECTORS = {
@@ -49,7 +54,7 @@
   function hideUnwantedEntries(root = document) {
     root
       .querySelectorAll(
-        `div[role="button"]:not([data-hidden]):has(${SELECTORS.feedEntry})`,
+        `div[role="button"]:not([data-processed]):has(${SELECTORS.feedEntry})`,
       )
       .forEach((div) => {
         const challenge = div.querySelector('[data-testid="group-header"]');
@@ -65,7 +70,10 @@
         }
 
         const activity = div.querySelector(SELECTORS.activityName);
-        if (!activity) return;
+        if (!activity) {
+          markAsProcessed(div);
+          return;
+        }
 
         const activityName = activity?.textContent.trim();
 
@@ -81,6 +89,7 @@
               `skipping further processing of ${athleteName}'s ⭐ activity: ${activityName}`,
             );
           }
+          markAsProcessed(div);
           return;
         }
 
@@ -94,6 +103,7 @@
               console.log(
                 `not hiding commute activity with photo(s): ${activityName}`,
               );
+              markAsProcessed(div);
               return;
             }
 
@@ -125,6 +135,8 @@
           hideElement(div, `hiding activity by name: ${activityName}`);
           return;
         }
+
+        markAsProcessed(div);
       });
   }
 
