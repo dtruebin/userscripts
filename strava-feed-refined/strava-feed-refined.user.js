@@ -34,18 +34,6 @@
     ].map((s) => s.toLowerCase())
   };
 
-  // === Helper to hide an element and log reason ===
-  function hideElement(element, logMessage) {
-    console.log(logMessage);
-    element.style.display = "none";
-    markAsProcessed(element);
-  }
-
-  // === Helper to mark an element as processed ===
-  function markAsProcessed(element) {
-    element.dataset.processed = "true";
-  }
-
   const SELECTORS = {
     feedEntry: '[data-testid="web-feed-entry"]',
     activityName: '[data-testid="activity_name"]',
@@ -59,73 +47,127 @@
     photo: '[data-testid="photo"]',
   };
 
+  // === Helpers ===
+  /**
+   * Wraps the raw DOM element to provide clean accessors to data.
+   * Acts as the 'Request' object passed down the chain.
+   */
+  class FeedItem {
+    constructor(element) {
+      this.el = element;
+    }
+
+    // Marks this item as processed
+    markAsProcessed() {
+      this.el.dataset.processed = "true";
+    }
+
+    // Hides this item and logs the description of what is being hidden
+    hide(description) {
+      console.log(`hiding ${description}`);
+      this.el.style.display = "none";
+      this.markAsProcessed();
+    }
+
+    get isChallenge() {
+      return !!this.el.querySelector(SELECTORS.groupHeader);
+    }
+
+    get challengeText() {
+      return this.el.querySelector(SELECTORS.groupHeader)?.textContent.trim();
+    }
+
+    get challengeName() {
+      return this.el.querySelector(SELECTORS.titleText)?.textContent.trim();
+    }
+
+    get isActivity() {
+      return !!this.el.querySelector(SELECTORS.activityName);
+    }
+
+    get activityName() {
+      return this.el.querySelector(SELECTORS.activityName)?.textContent.trim();
+    }
+
+    get athleteName() {
+      return this.el.querySelector(SELECTORS.ownersName)?.textContent.trim();
+    }
+
+    get isFromFavoriteAthlete() { // aka isBoosted
+      return !!this.el.querySelector(SELECTORS.boosted);
+    }
+
+    get tags() {
+      return [...this.el.querySelectorAll(SELECTORS.tag)].map(t => t?.textContent.trim());
+    }
+
+    get hasPhoto() {
+      return !!this.el.querySelector(SELECTORS.photo);
+    }
+
+    get partnerTags() {
+      return [...this.el.querySelectorAll(SELECTORS.partnerTag)].map(t => t?.textContent.trim());
+    }
+
+    get deviceName() {
+      return this.el.querySelector(SELECTORS.device)?.textContent.trim();
+    }
+  }
+
   // === Main function ===
   function hideUnwantedEntries(root = document) {
     root.querySelectorAll(`div[role="button"]:not([data-processed]):has(${SELECTORS.feedEntry})`)
       .forEach((div) => {
-        const challenge = div.querySelector(SELECTORS.groupHeader);
-        if (challenge) {
-          const challengeName = div.querySelector(SELECTORS.titleText)?.textContent;
-          hideElement(div, `hiding challenge progress: ${challenge.textContent} - ${challengeName}`);
+        const item = new FeedItem(div);
+
+        if (item.isChallenge) {
+          item.hide(`challenge progress: ${item.challengeText} - ${item.challengeName}`);
           return;
         }
 
-        const activity = div.querySelector(SELECTORS.activityName);
-        if (!activity) {
-          markAsProcessed(div);
+        if (!item.isActivity) {
+          item.markAsProcessed();
           return;
         }
 
-        const activityName = activity?.textContent.trim();
-
-        const fromFavoriteAthlete = div.querySelector(SELECTORS.boosted);
-        if (fromFavoriteAthlete) {
+        if (item.isFromFavoriteAthlete) {
           if (!document.URL.includes("/athletes/")) {
-            const athleteName = div.querySelector(SELECTORS.ownersName)?.textContent;
-            console.log(`skipping further processing of ${athleteName}'s ⭐ activity: ${activityName}`);
+            console.log(`skipping further processing of ${item.athleteName}'s ⭐ activity: ${item.activityName}`);
           }
-          markAsProcessed(div);
+          item.markAsProcessed();
           return;
         }
 
-        const tags = div.querySelectorAll(SELECTORS.tag);
-        for (const tag of [...tags].map((tagElement) => tagElement?.textContent.trim())) {
+        for (const tag of item.tags) {
           if (CONFIG.unwantedTags.has(tag)) {
-            const hasPhoto = div.querySelector(SELECTORS.photo);
-            if ((tag === "Commute" || tag === "Регулярный маршрут") && hasPhoto) {
-              console.log(`not hiding commute activity with photo(s): ${activityName}`);
-              markAsProcessed(div);
+            if ((tag === "Commute" || tag === "Регулярный маршрут") && item.hasPhoto) {
+              console.log(`not hiding commute activity with photo(s): ${item.activityName}`);
+              item.markAsProcessed();
               return;
             }
-
-            hideElement(div, `hiding activity by tag "${tag}": ${activityName}`);
+            item.hide(`activity by tag "${tag}": ${item.activityName}`);
             return;
           }
         }
 
-        const partnerTags = div.querySelectorAll(SELECTORS.partnerTag);
-        for (const tag of [...partnerTags].map((tagElement) => tagElement?.textContent.trim())) {
+        for (const tag of item.partnerTags) {
           if (CONFIG.unwantedPartnerTags.has(tag)) {
-            hideElement(div, `hiding activity by partner tag "${tag}": ${activityName}`);
+            item.hide(`activity by partner tag "${tag}": ${item.activityName}`);
             return;
           }
         }
 
-        const device = div.querySelector(SELECTORS.device);
-        if (device) {
-          const deviceName = device?.textContent.trim();
-          if (CONFIG.unwantedDevices.has(deviceName)) {
-            hideElement(div, `hiding activity by device "${deviceName}": ${activityName}`);
-            return;
-          }
-        }
-
-        if (CONFIG.unwantedNames.some((name) => activityName.toLowerCase().includes(name))) {
-          hideElement(div, `hiding activity by name: ${activityName}`);
+        if (CONFIG.unwantedDevices.has(item.deviceName)) {
+          item.hide(`activity by device "${item.deviceName}": ${item.activityName}`);
           return;
         }
 
-        markAsProcessed(div);
+        if (CONFIG.unwantedNames.some(name => item.activityName.toLowerCase().includes(name))) {
+          item.hide(`activity by name: ${item.activityName}`);
+          return;
+        }
+
+        item.markAsProcessed();
       });
   }
 
