@@ -52,15 +52,20 @@
     device: '[data-testid="device"]',
     tag: '[data-testid="tag"]',
     partnerTag: '[data-testid="partner_tag"]',
+    groupHeader: '[data-testid="group-header"]',
+    titleText: '[data-testid="title-text"]',
+    boosted: '[data-testid="boosted"]',
+    ownersName: '[data-testid="owners-name"]',
+    photo: '[data-testid="photo"]',
   };
 
   // === Main function ===
   function hideUnwantedEntries(root = document) {
     root.querySelectorAll(`div[role="button"]:not([data-processed]):has(${SELECTORS.feedEntry})`)
       .forEach((div) => {
-        const challenge = div.querySelector('[data-testid="group-header"]');
+        const challenge = div.querySelector(SELECTORS.groupHeader);
         if (challenge) {
-          const challengeName = div.querySelector('[data-testid="title-text"]')?.textContent;
+          const challengeName = div.querySelector(SELECTORS.titleText)?.textContent;
           hideElement(div, `hiding challenge progress: ${challenge.textContent} - ${challengeName}`);
           return;
         }
@@ -73,10 +78,10 @@
 
         const activityName = activity?.textContent.trim();
 
-        const fromFavoriteAthlete = div.querySelector('[data-testid="boosted"]');
+        const fromFavoriteAthlete = div.querySelector(SELECTORS.boosted);
         if (fromFavoriteAthlete) {
           if (!document.URL.includes("/athletes/")) {
-            const athleteName = div.querySelector('[data-testid="owners-name"]')?.textContent;
+            const athleteName = div.querySelector(SELECTORS.ownersName)?.textContent;
             console.log(`skipping further processing of ${athleteName}'s ⭐ activity: ${activityName}`);
           }
           markAsProcessed(div);
@@ -86,7 +91,7 @@
         const tags = div.querySelectorAll(SELECTORS.tag);
         for (const tag of [...tags].map((tagElement) => tagElement?.textContent.trim())) {
           if (CONFIG.unwantedTags.has(tag)) {
-            const hasPhoto = div.querySelector('[data-testid="photo"]');
+            const hasPhoto = div.querySelector(SELECTORS.photo);
             if ((tag === "Commute" || tag === "Регулярный маршрут") && hasPhoto) {
               console.log(`not hiding commute activity with photo(s): ${activityName}`);
               markAsProcessed(div);
