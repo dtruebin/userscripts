@@ -1,3 +1,4 @@
+// @ts-check
 // ==UserScript==
 // @name         Strava - Hide Unwanted Feed Items
 // @namespace    https://github.com/dtruebin/userscripts/
@@ -53,8 +54,13 @@
    * Acts as the 'Request' object passed down the chain.
    */
   class FeedItem {
+    /**
+     * @param {HTMLElement} element
+     */
     constructor(element) {
       this.el = element;
+
+      /** @type {Record<string, unknown>} */
       this._cache = {};
     }
 
@@ -64,14 +70,20 @@
     }
 
     // Hides this item and logs the description of what is being hidden
+    /**
+     * @param {string} description
+     */
     hide(description) {
       console.log(`hiding ${description}`);
       this.el.style.display = "none";
       this.markAsProcessed();
     }
 
+    /**
+     * @param {string} selector
+     */
     _getText(selector) {
-      return this.el.querySelector(selector)?.textContent.trim() || null;
+      return this.el.querySelector(selector)?.textContent.trim() || "";
     }
 
     get isChallenge() {
@@ -92,7 +104,7 @@
       if (this._cache.activityName === undefined) {
         this._cache.activityName = this._getText(SELECTORS.activityName);
       }
-      return this._cache.activityName;
+      return /** @type {string} */ (this._cache.activityName);
     }
 
     get athleteName() {
@@ -124,7 +136,7 @@
   function hideUnwantedEntries(root = document) {
     root.querySelectorAll(`div[role="button"]:not([data-processed]):has(${SELECTORS.feedEntry})`)
       .forEach((div) => {
-        const item = new FeedItem(div);
+        const item = new FeedItem(/** @type {HTMLElement} */ (div));
 
         if (item.isChallenge) {
           item.hide(`challenge progress: ${item.challengeInfo}`);
