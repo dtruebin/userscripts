@@ -55,6 +55,7 @@
   class FeedItem {
     constructor(element) {
       this.el = element;
+      this._cache = {};
     }
 
     // Marks this item as processed
@@ -86,7 +87,10 @@
     }
 
     get activityName() {
-      return this.el.querySelector(SELECTORS.activityName)?.textContent.trim();
+      if (this._cache.activityName === undefined) {
+        this._cache.activityName = this.el.querySelector(SELECTORS.activityName)?.textContent.trim();
+      }
+      return this._cache.activityName;
     }
 
     get athleteName() {
