@@ -70,16 +70,18 @@
       this.markAsProcessed();
     }
 
+    _getText(selector) {
+      return this.el.querySelector(selector)?.textContent.trim() || null;
+    }
+
     get isChallenge() {
       return !!this.el.querySelector(SELECTORS.groupHeader);
     }
 
-    get challengeText() {
-      return this.el.querySelector(SELECTORS.groupHeader)?.textContent.trim();
-    }
-
-    get challengeName() {
-      return this.el.querySelector(SELECTORS.titleText)?.textContent.trim();
+    get challengeInfo() {
+      const text = this._getText(SELECTORS.groupHeader);
+      const name = this._getText(SELECTORS.titleText);
+      return `${text} - ${name}`;
     }
 
     get isActivity() {
@@ -88,13 +90,13 @@
 
     get activityName() {
       if (this._cache.activityName === undefined) {
-        this._cache.activityName = this.el.querySelector(SELECTORS.activityName)?.textContent.trim();
+        this._cache.activityName = this._getText(SELECTORS.activityName);
       }
       return this._cache.activityName;
     }
 
     get athleteName() {
-      return this.el.querySelector(SELECTORS.ownersName)?.textContent.trim();
+      return this._getText(SELECTORS.ownersName);
     }
 
     get isFromFavoriteAthlete() { // aka isBoosted
@@ -114,7 +116,7 @@
     }
 
     get deviceName() {
-      return this.el.querySelector(SELECTORS.device)?.textContent.trim();
+      return this._getText(SELECTORS.device);
     }
   }
 
@@ -125,7 +127,7 @@
         const item = new FeedItem(div);
 
         if (item.isChallenge) {
-          item.hide(`challenge progress: ${item.challengeText} - ${item.challengeName}`);
+          item.hide(`challenge progress: ${item.challengeInfo}`);
           return;
         }
 
