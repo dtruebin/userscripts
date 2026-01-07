@@ -66,13 +66,13 @@
       this._cache = {};
     }
 
-    // Marks this item as processed
+    /** Marks this item as processed. */
     markAsProcessed() {
       this.el.dataset.processed = "true";
     }
 
-    // Hides this item and logs the description of what is being hidden
     /**
+     * Hides this item (also marking as processed) and logs the description of what is being hidden.
      * @param {string} description
      */
     hide(description) {
@@ -134,64 +134,103 @@
     }
   }
 
-  // === Main function ===
-  function hideUnwantedEntries(root = document) {
-    root.querySelectorAll(`.feature-feed > div:not([data-processed]):has(${SELECTORS.feedEntry})`)
-      .forEach((div) => {
-        const item = new FeedItem(/** @type {HTMLElement} */ (div));
-
-        if (item.isChallenge) {
-          item.hide(`challenge progress: ${item.challengeInfo}`);
-          return;
-        }
-
-        if (!item.isActivity) {
-          item.markAsProcessed();
-          return;
-        }
-
-        if (item.isFromFavoriteAthlete) {
-          if (!document.URL.includes("/athletes/")) {
-            console.log(`skipping further processing of ${item.athleteName}'s ⭐ activity: ${item.activityName}`);
-          }
-          item.markAsProcessed();
-          return;
-        }
-
-        for (const tag of item.tags) {
-          if (CONFIG.unwantedTags.has(tag)) {
-            if ((tag === "Commute" || tag === "Регулярный маршрут") && item.hasPhoto) {
-              console.log(`not hiding commute activity with photo(s): ${item.activityName}`);
-              item.markAsProcessed();
-              return;
-            }
-            item.hide(`activity by tag "${tag}": ${item.activityName}`);
-            return;
-          }
-        }
-
-        for (const tag of item.partnerTags) {
-          if (CONFIG.unwantedPartnerTags.has(tag)) {
-            item.hide(`activity by partner tag "${tag}": ${item.activityName}`);
-            return;
-          }
-        }
-
-        if (CONFIG.unwantedDevices.has(item.deviceName)) {
-          item.hide(`activity by device "${item.deviceName}": ${item.activityName}`);
-          return;
-        }
-
-        if (CONFIG.unwantedNames.some(name => item.activityName.toLowerCase().includes(name))) {
-          item.hide(`activity by name: ${item.activityName}`);
-          return;
-        }
-
+  // === Filtering Rules ===
+  /**
+   * @typedef {(item: FeedItem) => boolean} FilterRule
+   * Returns true if processing should stop for this item.
+   */
+  const RULES = [
+    /** @type {FilterRule} */
+    (item) => {
+      if (item.isChallenge) {
+        item.hide(`challenge progress: ${item.challengeInfo}`);
+        return true;
+      }
+      return false;
+    },
+    /** @type {FilterRule} */
+    (item) => {
+      if (!item.isActivity) {
         item.markAsProcessed();
-      });
+        return true;
+      }
+      return false;
+    },
+    /** @type {FilterRule} */
+    (item) => {
+      if (item.isFromFavoriteAthlete) {
+        if (!document.URL.includes("/athletes/")) {
+          console.log(`skipping further processing of ${item.athleteName}'s ⭐ activity: ${item.activityName}`);
+        }
+        item.markAsProcessed();
+        return true;
+      }
+      return false;
+    },
+    /** @type {FilterRule} */
+    (item) => {
+      for (const tag of item.tags) {
+        if (CONFIG.unwantedTags.has(tag)) {
+          if ((tag === "Commute" || tag === "Регулярный маршрут") && item.hasPhoto) {
+            console.log(`not hiding commute activity with photo(s): ${item.activityName}`);
+            item.markAsProcessed();
+            return true;
+          }
+          item.hide(`activity by tag "${tag}": ${item.activityName}`);
+          return true;
+        }
+      }
+      return false;
+    },
+    /** @type {FilterRule} */
+    (item) => {
+      for (const tag of item.partnerTags) {
+        if (CONFIG.unwantedPartnerTags.has(tag)) {
+          item.hide(`activity by partner tag "${tag}": ${item.activityName}`);
+          return true;
+        }
+      }
+      return false;
+    },
+    /** @type {FilterRule} */
+    (item) => {
+      if (CONFIG.unwantedDevices.has(item.deviceName)) {
+        item.hide(`activity by device "${item.deviceName}": ${item.activityName}`);
+        return true;
+      }
+      return false;
+    },
+    /** @type {FilterRule} */
+    (item) => {
+      if (CONFIG.unwantedNames.some(name => item.activityName.toLowerCase().includes(name))) {
+        item.hide(`activity by name: ${item.activityName}`);
+        return true;
+      }
+      return false;
+    },
+  ];
+
+  // === Main function ===
+  function processFeed(root = document) {
+    const items = root.querySelectorAll(`.feature-feed > div:not([data-processed]):has(${SELECTORS.feedEntry})`);
+    for (const div of items) {
+      const item = new FeedItem(/** @type {HTMLElement} */(div));
+
+      let stopped = false;
+      for (const rule of RULES) {
+        if (rule(item)) {
+          stopped = true;
+          break;
+        }
+      }
+
+      if (!stopped) {
+        item.markAsProcessed();
+      }
+    }
   }
 
-  const observer = new MutationObserver(() => hideUnwantedEntries());
+  const observer = new MutationObserver(() => processFeed());
   observer.observe(document.body, {
     childList: true,
     subtree: true,
