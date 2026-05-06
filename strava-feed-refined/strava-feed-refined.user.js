@@ -3,7 +3,7 @@
 // @name         Strava - Hide Unwanted Feed Items
 // @namespace    https://github.com/dtruebin/userscripts/
 // @supportURL   https://github.com/dtruebin/userscripts/issues
-// @version      4.1.0
+// @version      4.1.1
 // @description  Hides uninspiring activities and challenge progress from Strava feed based on device, tags, and activity name.
 // @author       Dmitry Trubin
 // @match        https://www.strava.com/dashboard*
@@ -134,7 +134,7 @@
 
   // === Main function ===
   function hideUnwantedEntries(root = document) {
-    root.querySelectorAll(`div[role="button"]:not([data-processed]):has(${SELECTORS.feedEntry})`)
+    root.querySelectorAll(`.feature-feed > div:not([data-processed]):has(${SELECTORS.feedEntry})`)
       .forEach((div) => {
         const item = new FeedItem(/** @type {HTMLElement} */ (div));
 
