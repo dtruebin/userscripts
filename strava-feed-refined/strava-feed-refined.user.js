@@ -3,7 +3,7 @@
 // @name         Strava - Hide Unwanted Feed Items
 // @namespace    https://github.com/dtruebin/userscripts/
 // @supportURL   https://github.com/dtruebin/userscripts/issues
-// @version      4.1.1
+// @version      5.0.0
 // @description  Hides uninspiring activities and challenge progress from Strava feed based on device, tags, and activity name.
 // @author       Dmitry Trubin
 // @match        https://www.strava.com/dashboard*
@@ -26,12 +26,14 @@
       "TrainerRoad",
     ]),
     unwantedDevices: new Set([
+      "Hevy",
       "Rouvy",
       "Tacx App",
       "Zwift",
     ]),
     unwantedNames: [
-      "weight training", "Gewichtstraining"
+      "weight training", "Gewichtstraining",
+      "yoga",
     ].map((s) => s.toLowerCase())
   };
 
