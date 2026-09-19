@@ -3,8 +3,8 @@
 // @name         Strava - Hide Unwanted Feed Items
 // @namespace    https://github.com/dtruebin/userscripts/
 // @supportURL   https://github.com/dtruebin/userscripts/issues
-// @version      5.0.0
-// @description  Hides uninspiring activities and challenge progress from Strava feed based on device, tags, and activity name.
+// @version      5.1.0
+// @description  Hides uninspiring activities and challenge progress from Strava feed based on device, tags, and activity type.
 // @author       Dmitry Trubin
 // @match        https://www.strava.com/dashboard*
 // @match        https://www.strava.com/athletes/*
@@ -17,6 +17,7 @@
   "use strict";
 
   // === Config ===
+
   const CONFIG = {
     unwantedTags: new Set([
       "Commute", "Регулярный маршрут",
@@ -31,14 +32,15 @@
       "Tacx App",
       "Zwift",
     ]),
-    unwantedNames: [
-      "weight training", "Gewichtstraining",
-      "yoga",
-    ].map((s) => s.toLowerCase())
+    unwantedTypes: new Set([
+      "WeightTraining", "Силовая тренировка",
+      "Йога", "Yoga",
+    ].map((s) => s.toLowerCase())),
   };
 
   const SELECTORS = {
     feedEntry: '[data-testid="web-feed-entry"]',
+    activityIcon: '[data-testid="activity-icon"] title',
     activityName: '[data-testid="activity_name"]',
     device: '[data-testid="device"]',
     tag: '[data-testid="tag"]',
@@ -107,6 +109,13 @@
         this._cache.activityName = this._getText(SELECTORS.activityName);
       }
       return /** @type {string} */ (this._cache.activityName);
+    }
+
+    get activityType() {
+      if (this._cache.activityType === undefined) {
+        this._cache.activityType = this._getText(SELECTORS.activityIcon);
+      }
+      return /** @type {string} */ (this._cache.activityType);
     }
 
     get athleteName() {
@@ -182,8 +191,13 @@
           return;
         }
 
-        if (CONFIG.unwantedNames.some(name => item.activityName.toLowerCase().includes(name))) {
-          item.hide(`activity by name: ${item.activityName}`);
+        if (CONFIG.unwantedTypes.has(item.activityType.toLowerCase())) {
+          if (item.hasPhoto) {
+            console.log(`not hiding ${item.activityType} activity with photo(s): ${item.activityName}`);
+            item.markAsProcessed();
+            return;
+          }
+          item.hide(`activity by type "${item.activityType}": ${item.activityName}`);
           return;
         }
 
