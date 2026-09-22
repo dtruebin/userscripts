@@ -3,7 +3,7 @@
 // @name         Strava - Hide Unwanted Feed Items
 // @namespace    https://github.com/dtruebin/userscripts/
 // @supportURL   https://github.com/dtruebin/userscripts/issues
-// @version      5.1.1
+// @version      6.0.0
 // @description  Hides uninspiring activities and challenge progress from Strava feed based on device, tags, and activity type.
 // @author       Dmitry Trubin
 // @match        https://www.strava.com/dashboard*
@@ -38,6 +38,8 @@
     ].map((s) => s.toLowerCase())),
   };
 
+  const MUSCLE_HEATMAP_URL_FRAGMENT = "muscle-heatmap";
+
   const SELECTORS = {
     feedEntry: '[data-testid="web-feed-entry"]',
     activityIcon: '[data-testid="activity-icon"] title',
@@ -50,6 +52,7 @@
     boosted: '[data-testid="boosted"]',
     ownersName: '[data-testid="owners-name"]',
     photo: '[data-testid="photo"]',
+    photoImage: '[data-testid="photo"] img',
   };
 
   // === Helpers ===
@@ -134,6 +137,21 @@
       return !!this.el.querySelector(SELECTORS.photo);
     }
 
+    // Muscle-map images don't count as real user photos.
+    get hasRealPhoto() {
+      if (!this.hasPhoto) {
+        return false;
+      }
+      const images = [...this.el.querySelectorAll(SELECTORS.photoImage)];
+      if (images.length === 0) {
+        return true;
+      }
+      return images.some((img) => {
+        const src = img.getAttribute("src") || img.getAttribute("data-src") || img.getAttribute("srcset") || "";
+        return !src.includes(MUSCLE_HEATMAP_URL_FRAGMENT);
+      });
+    }
+
     get partnerTags() {
       return [...this.el.querySelectorAll(SELECTORS.partnerTag)].map(t => t?.textContent.trim());
     }
@@ -169,7 +187,7 @@
 
         for (const tag of item.tags) {
           if (CONFIG.unwantedTags.has(tag)) {
-            if ((tag === "Commute" || tag === "Регулярный маршрут") && item.hasPhoto) {
+            if ((tag === "Commute" || tag === "Регулярный маршрут") && item.hasRealPhoto) {
               console.log(`not hiding commute activity with photo(s): ${item.activityName}`);
               item.markAsProcessed();
               return;
@@ -192,7 +210,7 @@
         }
 
         if (CONFIG.unwantedTypes.has(item.activityType.toLowerCase())) {
-          if (item.hasPhoto) {
+          if (item.hasRealPhoto) {
             console.log(`not hiding ${item.activityType} activity with photo(s): ${item.activityName}`);
             item.markAsProcessed();
             return;

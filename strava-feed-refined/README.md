@@ -18,7 +18,7 @@ No complicated settings. Just install and enjoy a better Strava experience. 🤩
 * Activities unless they are from a favorite (“starred”) athlete:
   * Commutes, unless they include photos
   * Virtual rides
-  * Certain indoor or map-less activities (e.g., weight training), unless they include photos
+  * Certain indoor or map-less activities (e.g., weight training), unless they include real photos (muscle maps don't count)
 
 ✔ Everything hidden by the script is logged in your browser console for transparency.
 
