@@ -3,7 +3,7 @@
 // @name         Strava - Hide Unwanted Feed Items
 // @namespace    https://github.com/dtruebin/userscripts/
 // @supportURL   https://github.com/dtruebin/userscripts/issues
-// @version      6.0.0
+// @version      6.0.1
 // @description  Hides uninspiring activities and challenge progress from Strava feed based on device, tags, and activity type.
 // @author       Dmitry Trubin
 // @match        https://www.strava.com/dashboard*
@@ -71,9 +71,11 @@
       this._cache = {};
     }
 
-    // Marks this item as processed
+    /**
+     * Marks this item as evaluated for its current content.
+     */
     markAsProcessed() {
-      this.el.dataset.processed = "true";
+      this.el.dataset.processed = this.signature;
     }
 
     // Hides this item and logs the description of what is being hidden
@@ -159,16 +161,41 @@
     get deviceName() {
       return this._getText(SELECTORS.device);
     }
+
+    /** Snapshot of every field the hide/show decision depends on. */
+    get signature() {
+      const photoSrcs = [...this.el.querySelectorAll(SELECTORS.photoImage)]
+        .map((img) => img.getAttribute("src") || img.getAttribute("data-src") || img.getAttribute("srcset") || "")
+        .join("|");
+      return JSON.stringify([
+        this.isChallenge, this.challengeInfo,
+        this.isActivity, this.activityName, this.activityType,
+        this.isFromFavoriteAthlete,
+        this.tags.join(","), this.partnerTags.join(","), this.deviceName,
+        this.hasPhoto, photoSrcs,
+      ]);
+    }
   }
 
   // === Main function ===
   function hideUnwantedEntries(root = document) {
-    root.querySelectorAll(`.feature-feed > div:not([data-processed]):has(${SELECTORS.feedEntry})`)
+    root.querySelectorAll(`.feature-feed > div:has(${SELECTORS.feedEntry})`)
       .forEach((div) => {
         const item = new FeedItem(/** @type {HTMLElement} */ (div));
 
+        // Skip re-evaluation when nothing relevant changed since last decision.
+        // (dataset.processed stores the signature, not a boolean flag.)
+        if (item.el.dataset.processed !== undefined && item.el.dataset.processed === item.signature) {
+          return;
+        }
+        const wasHidden = item.el.style.display === "none";
+
         if (item.isChallenge) {
-          item.hide(`challenge progress: ${item.challengeInfo}`);
+          if (!wasHidden) {
+            item.hide(`challenge progress: ${item.challengeInfo}`);
+          } else {
+            item.markAsProcessed();
+          }
           return;
         }
 
@@ -192,20 +219,32 @@
               item.markAsProcessed();
               return;
             }
-            item.hide(`activity by tag "${tag}": ${item.activityName}`);
+            if (!wasHidden) {
+              item.hide(`activity by tag "${tag}": ${item.activityName}`);
+            } else {
+              item.markAsProcessed();
+            }
             return;
           }
         }
 
         for (const tag of item.partnerTags) {
           if (CONFIG.unwantedPartnerTags.has(tag)) {
-            item.hide(`activity by partner tag "${tag}": ${item.activityName}`);
+            if (!wasHidden) {
+              item.hide(`activity by partner tag "${tag}": ${item.activityName}`);
+            } else {
+              item.markAsProcessed();
+            }
             return;
           }
         }
 
         if (CONFIG.unwantedDevices.has(item.deviceName)) {
-          item.hide(`activity by device "${item.deviceName}": ${item.activityName}`);
+          if (!wasHidden) {
+            item.hide(`activity by device "${item.deviceName}": ${item.activityName}`);
+          } else {
+            item.markAsProcessed();
+          }
           return;
         }
 
@@ -215,7 +254,11 @@
             item.markAsProcessed();
             return;
           }
-          item.hide(`activity by type "${item.activityType}": ${item.activityName}`);
+          if (!wasHidden) {
+            item.hide(`activity by type "${item.activityType}": ${item.activityName}`);
+          } else {
+            item.markAsProcessed();
+          }
           return;
         }
 
@@ -223,6 +266,7 @@
       });
   }
 
+  hideUnwantedEntries();
   const observer = new MutationObserver(() => hideUnwantedEntries());
   observer.observe(document.body, {
     childList: true,
