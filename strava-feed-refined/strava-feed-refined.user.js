@@ -3,7 +3,7 @@
 // @name         Strava - Hide Unwanted Feed Items
 // @namespace    https://github.com/dtruebin/userscripts/
 // @supportURL   https://github.com/dtruebin/userscripts/issues
-// @version      6.0.1
+// @version      6.0.2
 // @description  Hides uninspiring activities and challenge progress from Strava feed based on device, tags, and activity type.
 // @author       Dmitry Trubin
 // @match        https://www.strava.com/dashboard*
@@ -73,9 +73,10 @@
 
     /**
      * Marks this item as evaluated for its current content.
+     * @param {string} [signature] precomputed signature to store
      */
-    markAsProcessed() {
-      this.el.dataset.processed = this.signature;
+    markAsProcessed(signature = this.signature) {
+      this.el.dataset.processed = signature;
     }
 
     // Hides this item and logs the description of what is being hidden
@@ -178,96 +179,135 @@
   }
 
   // === Main function ===
+  /**
+   * Evaluates a single feed wrapper against the hide criteria.
+   * @param {Element} div
+   */
+  function evaluateWrapper(div) {
+    const item = new FeedItem(/** @type {HTMLElement} */ (div));
+    const signature = item.signature;
+
+    // Skip re-evaluation when nothing relevant changed since last decision.
+    // (dataset.processed stores the signature, not a boolean flag.)
+    if (item.el.dataset.processed !== undefined && item.el.dataset.processed === signature) {
+      return;
+    }
+    const wasHidden = item.el.style.display === "none";
+
+    if (item.isChallenge) {
+      if (!wasHidden) {
+        item.hide(`challenge progress: ${item.challengeInfo}`);
+      } else {
+        item.markAsProcessed(signature);
+      }
+      return;
+    }
+
+    if (!item.isActivity) {
+      item.markAsProcessed(signature);
+      return;
+    }
+
+    if (item.isFromFavoriteAthlete) {
+      if (!document.URL.includes("/athletes/")) {
+        console.log(`skipping further processing of ${item.athleteName}'s ⭐ activity: ${item.activityName}`);
+      }
+      item.markAsProcessed(signature);
+      return;
+    }
+
+    for (const tag of item.tags) {
+      if (CONFIG.unwantedTags.has(tag)) {
+        if ((tag === "Commute" || tag === "Регулярный маршрут") && item.hasRealPhoto) {
+          console.log(`not hiding commute activity with photo(s): ${item.activityName}`);
+          item.markAsProcessed(signature);
+          return;
+        }
+        if (!wasHidden) {
+          item.hide(`activity by tag "${tag}": ${item.activityName}`);
+        } else {
+          item.markAsProcessed(signature);
+        }
+        return;
+      }
+    }
+
+    for (const tag of item.partnerTags) {
+      if (CONFIG.unwantedPartnerTags.has(tag)) {
+        if (!wasHidden) {
+          item.hide(`activity by partner tag "${tag}": ${item.activityName}`);
+        } else {
+          item.markAsProcessed(signature);
+        }
+        return;
+      }
+    }
+
+    if (CONFIG.unwantedDevices.has(item.deviceName)) {
+      if (!wasHidden) {
+        item.hide(`activity by device "${item.deviceName}": ${item.activityName}`);
+      } else {
+        item.markAsProcessed(signature);
+      }
+      return;
+    }
+
+    if (CONFIG.unwantedTypes.has(item.activityType.toLowerCase())) {
+      if (item.hasRealPhoto) {
+        console.log(`not hiding ${item.activityType} activity with photo(s): ${item.activityName}`);
+        item.markAsProcessed(signature);
+        return;
+      }
+      if (!wasHidden) {
+        item.hide(`activity by type "${item.activityType}": ${item.activityName}`);
+      } else {
+        item.markAsProcessed(signature);
+      }
+      return;
+    }
+
+    item.markAsProcessed(signature);
+  }
+
+  /**
+   * Collects feed wrappers affected by a mutation batch.
+   * @param {MutationRecord[]} mutations
+   * @returns {Set<Element>}
+   */
+  function collectWrappers(mutations) {
+    const wrappers = /** @type {Set<Element>} */ (new Set());
+    for (const m of mutations) {
+      if (m.target.nodeType === 1) {
+        const w = /** @type {Element} */ (m.target).closest(".feature-feed > div");
+        if (w) wrappers.add(w);
+      }
+      for (const n of m.addedNodes) {
+        if (n.nodeType !== 1) continue;
+        const el = /** @type {Element} */ (n);
+        if (el.matches(".feature-feed > div")) wrappers.add(el);
+        const w = el.closest(".feature-feed > div");
+        if (w) wrappers.add(w);
+        for (const inner of el.querySelectorAll(".feature-feed > div")) {
+          wrappers.add(inner);
+        }
+      }
+    }
+    return wrappers;
+  }
+
+  /** Full sweep over the feed. */
   function hideUnwantedEntries(root = document) {
     root.querySelectorAll(`.feature-feed > div:has(${SELECTORS.feedEntry})`)
-      .forEach((div) => {
-        const item = new FeedItem(/** @type {HTMLElement} */ (div));
-
-        // Skip re-evaluation when nothing relevant changed since last decision.
-        // (dataset.processed stores the signature, not a boolean flag.)
-        if (item.el.dataset.processed !== undefined && item.el.dataset.processed === item.signature) {
-          return;
-        }
-        const wasHidden = item.el.style.display === "none";
-
-        if (item.isChallenge) {
-          if (!wasHidden) {
-            item.hide(`challenge progress: ${item.challengeInfo}`);
-          } else {
-            item.markAsProcessed();
-          }
-          return;
-        }
-
-        if (!item.isActivity) {
-          item.markAsProcessed();
-          return;
-        }
-
-        if (item.isFromFavoriteAthlete) {
-          if (!document.URL.includes("/athletes/")) {
-            console.log(`skipping further processing of ${item.athleteName}'s ⭐ activity: ${item.activityName}`);
-          }
-          item.markAsProcessed();
-          return;
-        }
-
-        for (const tag of item.tags) {
-          if (CONFIG.unwantedTags.has(tag)) {
-            if ((tag === "Commute" || tag === "Регулярный маршрут") && item.hasRealPhoto) {
-              console.log(`not hiding commute activity with photo(s): ${item.activityName}`);
-              item.markAsProcessed();
-              return;
-            }
-            if (!wasHidden) {
-              item.hide(`activity by tag "${tag}": ${item.activityName}`);
-            } else {
-              item.markAsProcessed();
-            }
-            return;
-          }
-        }
-
-        for (const tag of item.partnerTags) {
-          if (CONFIG.unwantedPartnerTags.has(tag)) {
-            if (!wasHidden) {
-              item.hide(`activity by partner tag "${tag}": ${item.activityName}`);
-            } else {
-              item.markAsProcessed();
-            }
-            return;
-          }
-        }
-
-        if (CONFIG.unwantedDevices.has(item.deviceName)) {
-          if (!wasHidden) {
-            item.hide(`activity by device "${item.deviceName}": ${item.activityName}`);
-          } else {
-            item.markAsProcessed();
-          }
-          return;
-        }
-
-        if (CONFIG.unwantedTypes.has(item.activityType.toLowerCase())) {
-          if (item.hasRealPhoto) {
-            console.log(`not hiding ${item.activityType} activity with photo(s): ${item.activityName}`);
-            item.markAsProcessed();
-            return;
-          }
-          if (!wasHidden) {
-            item.hide(`activity by type "${item.activityType}": ${item.activityName}`);
-          } else {
-            item.markAsProcessed();
-          }
-          return;
-        }
-
-        item.markAsProcessed();
-      });
+      .forEach(evaluateWrapper);
   }
 
   hideUnwantedEntries();
-  const observer = new MutationObserver(() => hideUnwantedEntries());
+
+  const observer = new MutationObserver((mutations) => {
+    for (const div of collectWrappers(mutations)) {
+      if (div.isConnected) evaluateWrapper(div);
+    }
+  });
   observer.observe(document.body, {
     childList: true,
     subtree: true,
