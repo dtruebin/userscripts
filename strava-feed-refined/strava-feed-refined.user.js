@@ -180,6 +180,48 @@
 
   // === Main function ===
   /**
+   * Content-based hide reason (challenge, tags, partner tags, devices,
+   * types), or null when the item should stay visible. Favorites are exempt.
+   * @param {FeedItem} item
+   * @returns {string|null}
+   */
+  function getUnwantedReason(item) {
+    // Pure function
+    if (item.isChallenge) {
+      return `challenge progress: ${item.challengeInfo}`;
+    }
+    if (!item.isActivity) {
+      return null;
+    }
+    if (item.isFromFavoriteAthlete) {
+      return null;
+    }
+    for (const tag of item.tags) {
+      if (CONFIG.unwantedTags.has(tag)) {
+        if ((tag === "Commute" || tag === "Регулярный маршрут") && item.hasRealPhoto) {
+          return null;
+        }
+        return `activity by tag "${tag}": ${item.activityName}`;
+      }
+    }
+    for (const tag of item.partnerTags) {
+      if (CONFIG.unwantedPartnerTags.has(tag)) {
+        return `activity by partner tag "${tag}": ${item.activityName}`;
+      }
+    }
+    if (CONFIG.unwantedDevices.has(item.deviceName)) {
+      return `activity by device "${item.deviceName}": ${item.activityName}`;
+    }
+    if (CONFIG.unwantedTypes.has(item.activityType.toLowerCase())) {
+      if (item.hasRealPhoto) {
+        return null;
+      }
+      return `activity by type "${item.activityType}": ${item.activityName}`;
+    }
+    return null;
+  }
+
+  /**
    * Evaluates a single feed wrapper against the hide criteria.
    * @param {Element} div
    */
@@ -193,10 +235,11 @@
       return;
     }
     const wasHidden = item.el.style.display === "none";
+    const unwantedReason = getUnwantedReason(item);
 
-    if (item.isChallenge) {
+    if (unwantedReason) {
       if (!wasHidden) {
-        item.hide(`challenge progress: ${item.challengeInfo}`);
+        item.hide(unwantedReason);
       } else {
         item.markAsProcessed(signature);
       }
@@ -213,56 +256,6 @@
         console.log(`skipping further processing of ${item.athleteName}'s ⭐ activity: ${item.activityName}`);
       }
       item.markAsProcessed(signature);
-      return;
-    }
-
-    for (const tag of item.tags) {
-      if (CONFIG.unwantedTags.has(tag)) {
-        if ((tag === "Commute" || tag === "Регулярный маршрут") && item.hasRealPhoto) {
-          console.log(`not hiding commute activity with photo(s): ${item.activityName}`);
-          item.markAsProcessed(signature);
-          return;
-        }
-        if (!wasHidden) {
-          item.hide(`activity by tag "${tag}": ${item.activityName}`);
-        } else {
-          item.markAsProcessed(signature);
-        }
-        return;
-      }
-    }
-
-    for (const tag of item.partnerTags) {
-      if (CONFIG.unwantedPartnerTags.has(tag)) {
-        if (!wasHidden) {
-          item.hide(`activity by partner tag "${tag}": ${item.activityName}`);
-        } else {
-          item.markAsProcessed(signature);
-        }
-        return;
-      }
-    }
-
-    if (CONFIG.unwantedDevices.has(item.deviceName)) {
-      if (!wasHidden) {
-        item.hide(`activity by device "${item.deviceName}": ${item.activityName}`);
-      } else {
-        item.markAsProcessed(signature);
-      }
-      return;
-    }
-
-    if (CONFIG.unwantedTypes.has(item.activityType.toLowerCase())) {
-      if (item.hasRealPhoto) {
-        console.log(`not hiding ${item.activityType} activity with photo(s): ${item.activityName}`);
-        item.markAsProcessed(signature);
-        return;
-      }
-      if (!wasHidden) {
-        item.hide(`activity by type "${item.activityType}": ${item.activityName}`);
-      } else {
-        item.markAsProcessed(signature);
-      }
       return;
     }
 
@@ -295,13 +288,9 @@
     return wrappers;
   }
 
-  /** Full sweep over the feed. */
-  function hideUnwantedEntries(root = document) {
-    root.querySelectorAll(`.feature-feed > div:has(${SELECTORS.feedEntry})`)
-      .forEach(evaluateWrapper);
-  }
-
-  hideUnwantedEntries();
+  // Process whole feed once on initial load.
+  document.querySelectorAll(`.feature-feed > div:has(${SELECTORS.feedEntry})`)
+    .forEach(evaluateWrapper);
 
   const observer = new MutationObserver((mutations) => {
     for (const div of collectWrappers(mutations)) {
