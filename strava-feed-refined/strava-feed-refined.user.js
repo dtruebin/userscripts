@@ -3,8 +3,8 @@
 // @name         Strava - Hide Unwanted Feed Items
 // @namespace    https://github.com/dtruebin/userscripts/
 // @supportURL   https://github.com/dtruebin/userscripts/issues
-// @version      6.0.3
-// @description  Hides uninspiring activities and challenge progress from Strava feed based on device, tags, and activity type.
+// @version      6.1.0
+// @description  Hides uninspiring/already-kudoed activities and challenge progress from Strava feed.
 // @author       Dmitry Trubin
 // @match        https://www.strava.com/dashboard*
 // @match        https://www.strava.com/athletes/*
@@ -53,6 +53,8 @@
     ownersName: '[data-testid="owners-name"]',
     photo: '[data-testid="photo"]',
     photoImage: '[data-testid="photo"] img',
+    kudosFilled: '[data-testid="filled_kudos"]',
+    kudosUnfilled: '[data-testid="unfilled_kudos"]',
   };
 
   // === Helpers ===
@@ -163,6 +165,27 @@
       return this._getText(SELECTORS.device);
     }
 
+    get hasFilledKudos() {
+      return !!this.el.querySelector(SELECTORS.kudosFilled);
+    }
+
+    get hasUnfilledKudos() {
+      return !!this.el.querySelector(SELECTORS.kudosUnfilled);
+    }
+
+    /**
+     * Whether the viewer already gave kudos to this entry.
+     * Entries without a kudos button (challenges, own activities, etc.)
+     * are treated as not kudoed.
+     */
+    get isKudoed() {
+      return this.hasFilledKudos && !this.hasUnfilledKudos;
+    }
+
+    get kudosSignature() {
+      return `${this.hasFilledKudos}:${this.hasUnfilledKudos}`;
+    }
+
     /** Snapshot of every field the hide/show decision depends on. */
     get signature() {
       const photoSrcs = [...this.el.querySelectorAll(SELECTORS.photoImage)]
@@ -174,6 +197,7 @@
         this.isFromFavoriteAthlete,
         this.tags.join(","), this.partnerTags.join(","), this.deviceName,
         this.hasPhoto, photoSrcs,
+        this.kudosSignature,
       ]);
     }
   }
@@ -221,6 +245,12 @@
     return null;
   }
 
+  // Kudo filtering only makes sense on the main feed. On athlete pages the
+  // user is browsing history, so already-kudoed entries must stay visible.
+  function isKudoFilterApplicable() {
+    return !document.URL.includes("/athletes/");
+  }
+
   /**
    * Evaluates a single feed wrapper against the hide criteria.
    * @param {Element} div
@@ -256,6 +286,15 @@
         console.log(`skipping further processing of ${item.athleteName}'s ⭐ activity: ${item.activityName}`);
       }
       item.markAsProcessed(signature);
+      return;
+    }
+
+    if (isKudoFilterApplicable() && item.isKudoed) {
+      if (!wasHidden) {
+        item.hide(`already-kudoed activity: ${item.activityName}`);
+      } else {
+        item.markAsProcessed(signature);
+      }
       return;
     }
 
@@ -301,8 +340,10 @@
     childList: true,
     subtree: true,
     // Resolving <img> src swaps produce no childList records, so watch
-    // image attributes too.
+    // image attributes too. Kudo toggles swap filled/unfilled icons via
+    // childList, so no attribute watching is needed for them.
     attributes: true,
     attributeFilter: ["src", "data-src", "srcset"],
   });
+
 })();
