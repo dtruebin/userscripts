@@ -16,7 +16,7 @@ No complicated settings. Just install and enjoy a better Strava experience. 🤩
 
 * All challenge progress banners (joined a challenge, hit 25% completion, etc.)
 * Activities unless they are from a favorite (“starred”) athlete:
-  * Already kudoed (these are still shown on the athlete page)
+  * Already kudoed (these are still shown on the athlete page; kudos you give yourself take effect on the next load)
   * Commutes, unless they include photos
   * Virtual rides
   * Certain indoor or map-less activities (e.g., weight training), unless they include real photos (muscle maps don't count)

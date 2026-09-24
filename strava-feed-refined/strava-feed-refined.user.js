@@ -3,7 +3,7 @@
 // @name         Strava - Hide Unwanted Feed Items
 // @namespace    https://github.com/dtruebin/userscripts/
 // @supportURL   https://github.com/dtruebin/userscripts/issues
-// @version      7.0.0
+// @version      7.1.0
 // @description  Hides uninspiring/already-kudoed activities and challenge progress from Strava feed.
 // @author       Dmitry Trubin
 // @match        https://www.strava.com/dashboard*
@@ -188,6 +188,20 @@
       return `${this.hasFilledKudos}:${this.hasUnfilledKudos}`;
     }
 
+    /**
+     * Whether this entry has been known to wait for kudos, i.e. whether
+     * the kudos it now has were given during the current session.
+     */
+    get seenNonkudoed() {
+      return this.el.dataset.seenNonkudoed !== undefined;
+    }
+
+    rememberIfNonkudoed() {
+      if (this.hasUnfilledKudos) {
+        this.el.dataset.seenNonkudoed = "true";
+      }
+    }
+
     /** Snapshot of every field the hide/show decision depends on. */
     get signature() {
       const photoSrcs = [...this.el.querySelectorAll(SELECTORS.photoImage)]
@@ -266,6 +280,8 @@
     if (item.el.dataset.processed !== undefined && item.el.dataset.processed === signature) {
       return;
     }
+    item.rememberIfNonkudoed();
+
     const wasHidden = item.el.style.display === "none";
     const unwantedReason = getUnwantedReason(item);
 
@@ -291,7 +307,7 @@
       return;
     }
 
-    if (isKudoFilterApplicable() && item.isKudoed) {
+    if (isKudoFilterApplicable() && item.isKudoed && !item.seenNonkudoed) {
       if (!wasHidden) {
         item.hide(`already-kudoed activity: ${item.activityName}`);
       } else {
