@@ -3,7 +3,7 @@
 // @name         Strava - Hide Unwanted Feed Items
 // @namespace    https://github.com/dtruebin/userscripts/
 // @supportURL   https://github.com/dtruebin/userscripts/issues
-// @version      7.1.0
+// @version      7.1.1
 // @description  Hides uninspiring/already-kudoed activities and challenge progress from Strava feed.
 // @author       Dmitry Trubin
 // @match        https://www.strava.com/dashboard*
@@ -154,7 +154,7 @@
         return true;
       }
       return images.some((img) => {
-        const src = img.getAttribute("src") || img.getAttribute("data-src") || img.getAttribute("srcset") || "";
+        const src = img.getAttribute("src") || "";
         return !src.includes(MUSCLE_HEATMAP_URL_FRAGMENT);
       });
     }
@@ -205,7 +205,7 @@
     /** Snapshot of every field the hide/show decision depends on. */
     get signature() {
       const photoSrcs = [...this.el.querySelectorAll(SELECTORS.photoImage)]
-        .map((img) => img.getAttribute("src") || img.getAttribute("data-src") || img.getAttribute("srcset") || "")
+        .map((img) => img.getAttribute("src") || "")
         .join("|");
       return JSON.stringify([
         this.isChallenge, this.challengeInfo,
@@ -357,11 +357,11 @@
   observer.observe(document.body, {
     childList: true,
     subtree: true,
-    // Resolving <img> src swaps produce no childList records, so watch
-    // image attributes too. Kudo toggles swap filled/unfilled icons via
-    // childList, so no attribute watching is needed for them.
+    // Resolving <img> src swaps produce no childList records, so watch src
+    // too. Kudo toggles swap filled/unfilled icons via childList, so no
+    // attribute watching is needed for them.
     attributes: true,
-    attributeFilter: ["src", "data-src", "srcset"],
+    attributeFilter: ["src"],
   });
 
 })();
