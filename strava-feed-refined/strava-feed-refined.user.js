@@ -3,7 +3,7 @@
 // @name         Strava - Hide Unwanted Feed Items
 // @namespace    https://github.com/dtruebin/userscripts/
 // @supportURL   https://github.com/dtruebin/userscripts/issues
-// @version      7.2.0
+// @version      7.2.1
 // @description  Hides uninspiring/already-kudoed activities and challenge progress from Strava feed.
 // @author       Dmitry Trubin
 // @match        https://www.strava.com/dashboard*
@@ -20,7 +20,7 @@
 
   const CONFIG = {
     unwantedTags: new Set([
-      "Commute", "Регулярный маршрут",
+      "Commute", "На работу",
       "Virtual", "Виртуальный",
     ]),
     unwantedPartnerTags: new Set([
