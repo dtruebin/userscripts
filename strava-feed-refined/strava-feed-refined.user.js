@@ -3,7 +3,7 @@
 // @name         Strava - Hide Unwanted Feed Items
 // @namespace    https://github.com/dtruebin/userscripts/
 // @supportURL   https://github.com/dtruebin/userscripts/issues
-// @version      7.2.1
+// @version      7.2.2
 // @description  Hides uninspiring/already-kudoed activities and challenge progress from Strava feed.
 // @author       Dmitry Trubin
 // @match        https://www.strava.com/dashboard*
@@ -239,7 +239,7 @@
     }
     for (const tag of item.tags) {
       if (CONFIG.unwantedTags.has(tag)) {
-        if ((tag === "Commute" || tag === "Регулярный маршрут") && item.hasRealPhoto) {
+        if ((tag === "Commute" || tag === "На работу") && item.hasRealPhoto) {
           return null;
         }
         return `activity by tag "${tag}": ${item.activityName}`;
