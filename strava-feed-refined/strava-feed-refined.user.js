@@ -3,7 +3,7 @@
 // @name         Strava - Hide Unwanted Feed Items
 // @namespace    https://github.com/dtruebin/userscripts/
 // @supportURL   https://github.com/dtruebin/userscripts/issues
-// @version      7.2.2
+// @version      7.2.3
 // @description  Hides uninspiring/already-kudoed activities and challenge progress from Strava feed.
 // @author       Dmitry Trubin
 // @match        https://www.strava.com/dashboard*
@@ -19,10 +19,8 @@
   // === Config ===
 
   const CONFIG = {
-    unwantedTags: new Set([
-      "Commute", "На работу",
-      "Virtual", "Виртуальный",
-    ]),
+    /** @type {Set<keyof typeof TAG_VARIANTS>} */
+    unwantedTagKeys: new Set(["commute", "virtual"]),
     unwantedPartnerTags: new Set([
       "TrainerRoad",
     ]),
@@ -32,14 +30,54 @@
       "Tacx App",
       "Zwift",
     ]),
-    unwantedTypes: new Set([
-      "Weight Training", "Силовая тренировка",
-      "Yoga", "Йога",
-      "Swim", "Заплыв",
-      "Rock Climb", "Скалолазание",
-      "HIIT",
-    ].map((s) => s.toLowerCase())),
+    /** @type {Set<keyof typeof TYPE_VARIANTS>} */
+    unwantedTypeKeys: new Set([
+      "weightTraining",
+      "yoga",
+      "swim",
+      "rockClimb",
+      "hiit",
+    ]),
   };
+
+  /**
+   * Canonical tag concepts and their per-language labels as seen in the feed.
+   * @see CONFIG.unwantedTagKeys
+   */
+  const TAG_VARIANTS = {
+    commute: ["Commute", "На работу"],
+    virtual: ["Virtual", "Виртуальный"],
+  };
+
+  /**
+   * Canonical activity types and their per-language labels as seen in the feed.
+   */
+  const TYPE_VARIANTS = {
+    weightTraining: ["Weight Training", "Силовая тренировка"],
+    yoga: ["Yoga", "Йога"],
+    swim: ["Swim", "Заплыв"],
+    rockClimb: ["Rock Climb", "Скалолазание"],
+    hiit: ["HIIT"],
+  };
+
+  /**
+   * Expands canonical keys into a flat set of per-language labels.
+   * @param {Set<string>} keys canonical concepts to include
+   * @param {Record<string, string[]>} variants per-language labels by concept
+   * @returns {Set<string>}
+   */
+  function expandVariants(keys, variants) {
+    return new Set([...keys].flatMap((key) => variants[key] ?? []));
+  }
+
+  /** @type {Set<string>} */
+  const UNWANTED_TAGS = expandVariants(CONFIG.unwantedTagKeys, TAG_VARIANTS);
+  /** @type {Set<string>} */
+  const COMMUTE_TAGS = new Set(TAG_VARIANTS.commute);
+  /** @type {Set<string>} */
+  const UNWANTED_TYPES = new Set(
+    [...expandVariants(CONFIG.unwantedTypeKeys, TYPE_VARIANTS)].map((s) => s.toLowerCase()),
+  );
 
   const MUSCLE_HEATMAP_URL_FRAGMENT = "muscle-heatmap";
 
@@ -238,8 +276,8 @@
       return null;
     }
     for (const tag of item.tags) {
-      if (CONFIG.unwantedTags.has(tag)) {
-        if ((tag === "Commute" || tag === "На работу") && item.hasRealPhoto) {
+      if (UNWANTED_TAGS.has(tag)) {
+        if (COMMUTE_TAGS.has(tag) && item.hasRealPhoto) {
           return null;
         }
         return `activity by tag "${tag}": ${item.activityName}`;
@@ -253,7 +291,7 @@
     if (CONFIG.unwantedDevices.has(item.deviceName)) {
       return `activity by device "${item.deviceName}": ${item.activityName}`;
     }
-    if (CONFIG.unwantedTypes.has(item.activityType.toLowerCase())) {
+    if (UNWANTED_TYPES.has(item.activityType.toLowerCase())) {
       if (item.hasRealPhoto) {
         return null;
       }
