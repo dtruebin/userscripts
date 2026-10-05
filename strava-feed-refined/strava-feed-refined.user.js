@@ -3,7 +3,7 @@
 // @name         Strava - Hide Unwanted Feed Items
 // @namespace    https://github.com/dtruebin/userscripts/
 // @supportURL   https://github.com/dtruebin/userscripts/issues
-// @version      7.2.3
+// @version      7.3.0
 // @description  Hides uninspiring/already-kudoed activities and challenge progress from Strava feed.
 // @author       Dmitry Trubin
 // @match        https://www.strava.com/dashboard*
@@ -37,6 +37,7 @@
       "swim",
       "rockClimb",
       "hiit",
+      "elliptical",
     ]),
   };
 
@@ -58,6 +59,7 @@
     swim: ["Swim", "Заплыв"],
     rockClimb: ["Rock Climb", "Скалолазание"],
     hiit: ["HIIT"],
+    elliptical: ["Elliptical", "Эллиптический тренажер"],
   };
 
   /**
