@@ -3,7 +3,7 @@
 // @name         Strava - Hide Unwanted Feed Items
 // @namespace    https://github.com/dtruebin/userscripts/
 // @supportURL   https://github.com/dtruebin/userscripts/issues
-// @version      7.5.0
+// @version      7.5.1
 // @description  Hides uninspiring/already-kudoed activities and challenge progress from Strava feed.
 // @author       Dmitry Trubin
 // @match        https://www.strava.com/dashboard*
@@ -30,16 +30,15 @@
       "Tacx App",
       "Zwift",
     ]),
-    /** @type {Set<keyof typeof TYPE_VARIANTS>} */
-    unwantedTypeKeys: new Set([
-      "weightTraining",
+    unwantedTypes: new Set([
+      "weighttraining",
       "yoga",
       "swim",
-      "rockClimb",
-      "hiit",
+      "rockclimbing",
+      "highintensityintervaltraining",
       "elliptical",
       "tennis",
-      "stairStepper",
+      "stairstepper",
       "pilates",
     ]),
   };
@@ -51,21 +50,6 @@
   const TAG_VARIANTS = {
     commute: ["Commute", "На работу"],
     virtual: ["Virtual", "Виртуальный"],
-  };
-
-  /**
-   * Canonical activity types and their per-language labels as seen in the feed.
-   */
-  const TYPE_VARIANTS = {
-    weightTraining: ["Weight Training", "Силовая тренировка"],
-    yoga: ["Yoga", "Йога"],
-    swim: ["Swim", "Заплыв"],
-    rockClimb: ["Rock Climb", "Скалолазание"],
-    hiit: ["HIIT"],
-    elliptical: ["Elliptical", "Эллиптический тренажер"],
-    tennis: ["Tennis", "Теннис"],
-    stairStepper: ["Stair-Stepper", "Тренажер-степпер"],
-    pilates: ["Pilates", "Пилатес"],
   };
 
   /**
@@ -82,10 +66,8 @@
   const UNWANTED_TAGS = expandVariants(CONFIG.unwantedTagKeys, TAG_VARIANTS);
   /** @type {Set<string>} */
   const COMMUTE_TAGS = new Set(TAG_VARIANTS.commute);
-  /** @type {Set<string>} */
-  const UNWANTED_TYPES = new Set(
-    [...expandVariants(CONFIG.unwantedTypeKeys, TYPE_VARIANTS)].map((s) => s.toLowerCase()),
-  );
+
+  const ACTIVITY_TYPE_ID_PREFIX = "strava.activities.types_v2.";
 
   const MUSCLE_HEATMAP_URL_FRAGMENT = "muscle-heatmap";
 
@@ -168,11 +150,12 @@
       return /** @type {string} */ (this._cache.activityName);
     }
 
-    get activityType() {
-      if (this._cache.activityType === undefined) {
-        this._cache.activityType = this._getText(SELECTORS.activityIcon);
+    get activityTypeId() {
+      if (this._cache.activityTypeId === undefined) {
+        this._cache.activityTypeId = this._getText(SELECTORS.activityIcon)
+          .replace(ACTIVITY_TYPE_ID_PREFIX, "");
       }
-      return /** @type {string} */ (this._cache.activityType);
+      return /** @type {string} */ (this._cache.activityTypeId);
     }
 
     get athleteName() {
@@ -256,7 +239,7 @@
         .join("|");
       return JSON.stringify([
         this.isChallenge, this.challengeInfo,
-        this.isActivity, this.activityName, this.activityType,
+        this.isActivity, this.activityName, this.activityTypeId,
         this.isFromFavoriteAthlete,
         this.tags.join(","), this.partnerTags.join(","), this.deviceName,
         this.hasPhoto, photoSrcs,
@@ -299,11 +282,11 @@
     if (CONFIG.unwantedDevices.has(item.deviceName)) {
       return `activity by device "${item.deviceName}": ${item.activityName}`;
     }
-    if (UNWANTED_TYPES.has(item.activityType.toLowerCase())) {
+    if (CONFIG.unwantedTypes.has(item.activityTypeId)) {
       if (item.hasRealPhoto) {
         return null;
       }
-      return `activity by type "${item.activityType}": ${item.activityName}`;
+      return `activity by type "${item.activityTypeId}": ${item.activityName}`;
     }
     return null;
   }
