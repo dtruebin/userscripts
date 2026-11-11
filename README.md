@@ -6,6 +6,7 @@ To use scripts, you need to first install one of the user script managers in you
 
 # Userscripts
 
+* [Outlook - Ctrl/Cmd+Click for Background Tab](/outlook-background-tab/README.md)
 * [Strava – Hide from Feed (Mute)](/strava-hide-from-feed/README.md)
 * [Strava – Hide Unwanted Feed Items](/strava-feed-refined/README.md)
 * [Strava - Restore "Vive le Tour" Map Style Option](/strava-tdf-map-style/README.md)
